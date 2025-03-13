@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SQL 即時格式化工具</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- 引入 sql-formatter 函式庫 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql-formatter/4.0.2/sql-formatter.min.js"></script>
+  <!-- 引入 Prism CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" />
+  <!-- 引入 Google Fonts -->
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1, h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    p {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    /* 調整輸入框：使用 box-sizing 避免 padding 與 border 影響寬度 */
+    textarea {
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      font-family: monospace;
+      font-size: 16px;
+      padding: 10px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      resize: vertical;
+      min-height: 150px;
+    }
+    /* 結果區：加入一層容器方便轉圖片 */
+    #resultContainer {
+      background-color: #6BAA75;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    code {
+      color: #f8f9fa;
+    }
+    button {
+      background-color: #0c4767;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 10px 5px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #0a3d5a;
+    }
+    /* 移除 Prism 各語法標記的獨立背景色，使結果區統一 */
+    .token {
+      background: transparent !important;
+    }
+    /* RWD：在較小螢幕下調整文字與按鈕大小 */
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 24px;
+      }
+      h2 {
+        font-size: 20px;
+      }
+      button {
+        width: 100%;
+        margin: 10px 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>SQL 即時格式化工具</h1>
+    <p>請在下方輸入您的 SQL 語句：</p>
+    <textarea id="sqlInput" rows="10" placeholder="請輸入 SQL 語句..."></textarea>
+    <br>
+    <!-- 將格式化結果複製至輸入區 -->
+    <button id="copyBtn">將格式化結果複製至輸入區</button>
+    <h2>格式化後結果:</h2>
+    <!-- 結果區包覆於 #resultContainer 中，方便轉成圖片 -->
+    <div id="resultContainer">
+      <pre><code id="result" class="language-sql"></code></pre>
+    </div>
+    <!-- 複製結果按鈕：將格式化結果複製到剪貼簿 -->
+    <button id="copyClipboardBtn">複製格式化結果</button>
+    <!-- 新增三個功能按鈕 -->
+    <button id="downloadImageBtn">結果轉存成圖片</button>
+    <button id="copyImageClipboardBtn">結果轉存為圖片到剪貼簿</button>
+    <button id="copyBase64ClipboardBtn">圖片轉成 Base64 存於剪貼簿</button>
+  </div>
+  
+  <!-- 引入 Prism JS 與 SQL 語法插件 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+  <!-- 引入 html2canvas 函式庫，用於將結果區轉為圖片 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  
+  <script>
+    var sqlInput = document.getElementById('sqlInput');
+    var result = document.getElementById('result');
+    var copyBtn = document.getElementById('copyBtn');
+    var copyClipboardBtn = document.getElementById('copyClipboardBtn');
+    var downloadImageBtn = document.getElementById('downloadImageBtn');
+    var copyImageClipboardBtn = document.getElementById('copyImageClipboardBtn');
+    var copyBase64ClipboardBtn = document.getElementById('copyBase64ClipboardBtn');
+    var resultContainer = document.getElementById('resultContainer');
+
+    // 防抖 (debounce) 函數，避免輸入時頻繁觸發格式化
+    function debounce(func, wait) {
+      let timeout;
+      return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+      }
+    }
+
+    // 格式化 SQL 並更新結果顯示區，並重新應用 Prism 語法高亮
+    function formatSQL() {
+      try {
+        var sql = sqlInput.value;
+        var formattedSql = sqlFormatter.format(sql);
+        result.textContent = formattedSql;
+        // 重新套用 Prism 的語法高亮效果
+        Prism.highlightElement(result);
+      } catch (error) {
+        result.textContent = '格式化出現錯誤：' + error;
+      }
+    }
+
+    // 設定 300 毫秒防抖延遲
+    var debouncedFormatSQL = debounce(formatSQL, 300);
+
+    // 當使用者輸入時自動觸發格式化
+    sqlInput.addEventListener('input', debouncedFormatSQL);
+
+    // 點擊按鈕時，將格式化結果複製回輸入區
+    copyBtn.addEventListener('click', function() {
+      sqlInput.value = result.textContent;
+      formatSQL();
+    });
+
+    // 點擊複製結果按鈕時，將格式化結果複製到剪貼簿 (文字)
+    copyClipboardBtn.addEventListener('click', function() {
+      var formattedText = result.textContent;
+      navigator.clipboard.writeText(formattedText).then(function() {
+        alert("格式化結果已複製到剪貼簿！");
+      }, function(err) {
+        alert("複製失敗：" + err);
+      });
+    });
+
+    // 1. 結果轉存成圖片 (下載) —— 使用 Linux 的 timestamp（Unix timestamp）
+    downloadImageBtn.addEventListener('click', function() {
+      html2canvas(resultContainer).then(function(canvas) {
+        var dataURL = canvas.toDataURL("image/png");
+        var link = document.createElement("a");
+        // 取得 Unix timestamp（秒）
+        var timestamp = Math.floor(Date.now() / 1000);
+        link.href = dataURL;
+        link.download = "formatted_sql_" + timestamp + ".png";
+        link.click();
+      });
+    });
+
+    // 2. 結果轉存為圖片到剪貼簿
+    copyImageClipboardBtn.addEventListener('click', function() {
+      html2canvas(resultContainer).then(function(canvas) {
+        canvas.toBlob(function(blob) {
+          if (blob) {
+            const item = new ClipboardItem({ "image/png": blob });
+            navigator.clipboard.write([item]).then(function() {
+              alert("圖片已複製到剪貼簿！");
+            }).catch(function(err) {
+              alert("複製失敗：" + err);
+            });
+          }
+        }, "image/png");
+      });
+    });
+
+    // 3. 圖片轉成 Base64 存於剪貼簿
+    copyBase64ClipboardBtn.addEventListener('click', function() {
+      html2canvas(resultContainer).then(function(canvas) {
+        var dataURL = canvas.toDataURL("image/png");
+        navigator.clipboard.writeText(dataURL).then(function() {
+          alert("圖片的 Base64 已複製到剪貼簿！");
+        }).catch(function(err) {
+          alert("複製失敗：" + err);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
