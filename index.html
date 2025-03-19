@@ -143,6 +143,9 @@
       try {
         var sql = sqlInput.value;
         var formattedSql = sqlFormatter.format(sql);
+        // 修正因格式化造成的空白，避免 ! 和 = 之間以及 || 中間有空白
+        formattedSql = formattedSql.replace(/!\s+=/g, '!=');
+        formattedSql = formattedSql.replace(/\|\s+\|/g, '||');
         result.textContent = formattedSql;
         // 重新套用 Prism 的語法高亮效果
         Prism.highlightElement(result);
