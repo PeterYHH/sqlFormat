@@ -31,16 +31,16 @@
 </head>
 <body>
   <div class="container">
-    <h1>SQL 即時格式化工具</h1>
+    <h1>SQL 即時格式化與 Minify 工具</h1>
     <p>請在下方輸入您的 SQL 語句：</p>
     <textarea id="sqlInput" placeholder="請輸入 SQL 語句..."></textarea>
     <br>
+    <!-- 將結果直接複製回輸入區，無重新格式化 -->
     <button id="copyBtn">將結果複製於輸入區</button>
     <h2>格式化後結果:</h2>
     <div id="resultContainer">
       <pre><code id="result" class="language-sql"></code></pre>
     </div>
-    <!-- 新增 Format SQL 按鈕 -->
     <button id="formatBtn">Format SQL</button>
     <button id="minifyBtn">Minify SQL</button>
     <button id="copyClipboardBtn">複製結果至剪貼簿</button>
@@ -90,9 +90,9 @@
     var debouncedFormatSQL = debounce(formatSQL, 300);
     sqlInput.addEventListener('input', debouncedFormatSQL);
 
+    // 單純複製結果到輸入區，不重新格式化
     copyBtn.addEventListener('click', function() {
       sqlInput.value = result.textContent;
-      formatSQL();
     });
 
     copyClipboardBtn.addEventListener('click', function() {
