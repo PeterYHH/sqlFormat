@@ -4,152 +4,193 @@
   <meta charset="UTF-8">
   <title>SQL 即時格式化工具</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- 引入 sql-formatter 函式庫 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql-formatter/4.0.2/sql-formatter.min.js"></script>
-  <!-- 引入 Prism CSS -->
+  <script src="https://cdn.jsdelivr.net/npm/sql-formatter@15/dist/sql-formatter.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" />
-  <!-- 引入 Google Fonts -->
   <link href="https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Roboto', sans-serif; margin: 0; padding: 0; background-color: #f8f9fa; color: #333; }
     .container { max-width: 1160px; margin: 0 auto; padding: 20px; }
     h1, h2 { text-align: center; margin-bottom: 20px; }
-    p { text-align: center; margin-bottom: 20px; }
-    textarea { width: 100%; box-sizing: border-box; font-family: monospace; font-size: 16px; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; resize: vertical; min-height: 150px; }
-    #resultContainer { background-color: #6BAA75; padding: 15px; border-radius: 4px; overflow-x: auto; }
+
+    .input-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .input-label { font-weight: 500; font-size: 15px; }
+    .input-meta { display: flex; align-items: center; gap: 12px; }
+    .input-meta span { font-size: 13px; color: #888; }
+    select {
+      font-family: 'Roboto', sans-serif;
+      font-size: 14px;
+      padding: 6px 10px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+    }
+
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      font-family: monospace;
+      font-size: 16px;
+      padding: 10px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      resize: vertical;
+      min-height: 150px;
+    }
+
+    .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+
+    button {
+      background-color: #0c4767;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 15px;
+      transition: background-color 0.3s ease;
+      white-space: nowrap;
+    }
+    button:hover { background-color: #0a3d5a; }
+    button.secondary { background-color: #6c757d; }
+    button.secondary:hover { background-color: #5a6268; }
+    button.danger { background-color: #c0392b; }
+    button.danger:hover { background-color: #a93226; }
+
+    #resultContainer { background-color: #6BAA75; padding: 15px; border-radius: 4px; overflow-x: auto; margin: 16px 0; }
     pre { margin: 0; white-space: pre-wrap; word-wrap: break-word; }
     code { color: #f8f9fa; }
-    button { background-color: #0c4767; color: white; border: none; padding: 10px 20px; margin: 10px 5px; border-radius: 4px; cursor: pointer; font-size: 16px; transition: background-color 0.3s ease; }
-    button:hover { background-color: #0a3d5a; }
     .token { background: transparent !important; }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #27ae60;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-size: 15px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 1000;
+    }
+    .toast.show { opacity: 1; }
+    .toast.error { background: #c0392b; }
+
     @media (max-width: 600px) {
       h1 { font-size: 24px; }
       h2 { font-size: 20px; }
-      button { width: 100%; margin: 10px 0; }
+      .input-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .btn-group { flex-direction: column; }
+      button { width: 100%; }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>SQL 即時格式化工具</h1>
-    <p>請在下方輸入您的 SQL 語句：</p>
+
+    <div class="input-header">
+      <span class="input-label">輸入 SQL 語句</span>
+      <div class="input-meta">
+        <span id="inputMeta">0 行 · 0 字元</span>
+        <select id="dialectSelect">
+          <option value="sql">Standard SQL</option>
+          <option value="mysql">MySQL</option>
+          <option value="mariadb">MariaDB</option>
+          <option value="postgresql">PostgreSQL</option>
+          <option value="bigquery">BigQuery</option>
+          <option value="tsql">T-SQL (SQL Server)</option>
+          <option value="spark">Spark SQL</option>
+          <option value="hive">HiveQL</option>
+          <option value="sqlite">SQLite</option>
+          <option value="snowflake">Snowflake</option>
+          <option value="redshift">Redshift</option>
+        </select>
+      </div>
+    </div>
+
     <textarea id="sqlInput" placeholder="請輸入 SQL 語句..."></textarea>
-    <br>
-    <!-- 將結果直接複製回輸入區，無重新格式化 -->
-    <button id="copyBtn">將結果複製於輸入區</button>
-    <h2>格式化後結果:</h2>
+
+    <div class="btn-group">
+      <button id="formatBtn">Format SQL</button>
+      <button id="minifyKeepBtn" class="secondary">Minify（含註解）</button>
+      <button id="minifyRemoveBtn" class="secondary">Minify（移除註解）</button>
+      <button id="clearBtn" class="danger">清空</button>
+    </div>
+
+    <h2>格式化後結果：</h2>
     <div id="resultContainer">
       <pre><code id="result" class="language-sql"></code></pre>
     </div>
-    <button id="formatBtn">Format SQL</button>
-    <button id="minifyBtn">Minify SQL</button>
-    <button id="copyClipboardBtn">複製結果至剪貼簿</button>
-    <button id="downloadImageBtn">結果轉存成圖片</button>
-    <button id="copyImageClipboardBtn">結果轉存為圖片到剪貼簿</button>
-    <button id="copyBase64ClipboardBtn">圖片轉成 Base64 存於剪貼簿</button>
-    
+
+    <div class="btn-group">
+      <button id="copyBtn">複製結果至輸入區</button>
+      <button id="copyClipboardBtn">複製結果至剪貼簿</button>
+      <button id="downloadImageBtn">下載為圖片</button>
+      <button id="copyImageClipboardBtn">圖片複製至剪貼簿</button>
+      <button id="copyBase64ClipboardBtn">圖片轉 Base64 至剪貼簿</button>
+    </div>
   </div>
-  <!-- 引入 Prism JS 與 SQL 語法插件 -->
+
+  <div class="toast" id="toast"></div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
-  <!-- 引入 html2canvas 函式庫 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
-    var sqlInput = document.getElementById('sqlInput');
-    var result = document.getElementById('result');
-    var copyBtn = document.getElementById('copyBtn');
-    var copyClipboardBtn = document.getElementById('copyClipboardBtn');
-    var downloadImageBtn = document.getElementById('downloadImageBtn');
-    var copyImageClipboardBtn = document.getElementById('copyImageClipboardBtn');
-    var copyBase64ClipboardBtn = document.getElementById('copyBase64ClipboardBtn');
-    var formatBtn = document.getElementById('formatBtn');
-    var minifyBtn = document.getElementById('minifyBtn');
-    var resultContainer = document.getElementById('resultContainer');
+    const sqlInput = document.getElementById('sqlInput');
+    const result = document.getElementById('result');
+    const inputMeta = document.getElementById('inputMeta');
+    const dialectSelect = document.getElementById('dialectSelect');
+    const resultContainer = document.getElementById('resultContainer');
+    const toast = document.getElementById('toast');
+
+    let toastTimer;
+    function showToast(msg, isError = false) {
+      clearTimeout(toastTimer);
+      toast.textContent = msg;
+      toast.className = 'toast show' + (isError ? ' error' : '');
+      toastTimer = setTimeout(() => { toast.className = 'toast'; }, 2500);
+    }
+
+    function updateMeta() {
+      const text = sqlInput.value;
+      const lines = text === '' ? 0 : text.split('\n').length;
+      inputMeta.textContent = `${lines} 行 · ${text.length} 字元`;
+    }
 
     function debounce(func, wait) {
       let timeout;
       return function(...args) {
         clearTimeout(timeout);
         timeout = setTimeout(() => func.apply(this, args), wait);
-      }
+      };
     }
 
     function formatSQL() {
       try {
-        var sql = sqlInput.value;
-        var formattedSql = sqlFormatter.format(sql);
-        formattedSql = formattedSql.replace(/!\s+=/g, '!=');
-        formattedSql = formattedSql.replace(/\|\s+\|/g, '||');
-        result.textContent = formattedSql;
+        const sql = sqlInput.value;
+        const dialect = dialectSelect.value;
+        let formatted = sqlFormatter.format(sql, { language: dialect });
+        formatted = formatted.replace(/!\s+=/g, '!=').replace(/\|\s+\|/g, '||');
+        result.textContent = formatted;
         Prism.highlightElement(result);
       } catch (error) {
         result.textContent = '格式化出現錯誤：' + error;
       }
     }
 
-    var debouncedFormatSQL = debounce(formatSQL, 300);
-    sqlInput.addEventListener('input', debouncedFormatSQL);
-
-    // 單純複製結果到輸入區，不重新格式化
-    copyBtn.addEventListener('click', function() {
-      sqlInput.value = result.textContent;
-    });
-
-    copyClipboardBtn.addEventListener('click', function() {
-      navigator.clipboard.writeText(result.textContent).then(function() {
-        alert('格式化結果已複製到剪貼簿！');
-      }, function(err) {
-        alert('複製失敗：' + err);
-      });
-    });
-
-    downloadImageBtn.addEventListener('click', function() {
-      html2canvas(resultContainer).then(function(canvas) {
-        var dataURL = canvas.toDataURL('image/png');
-        var link = document.createElement('a');
-        var timestamp = Math.floor(Date.now() / 1000);
-        link.href = dataURL;
-        link.download = 'formatted_sql_' + timestamp + '.png';
-        link.click();
-      });
-    });
-
-    copyImageClipboardBtn.addEventListener('click', function() {
-      html2canvas(resultContainer).then(function(canvas) {
-        canvas.toBlob(function(blob) {
-          if (blob) {
-            const item = new ClipboardItem({ 'image/png': blob });
-            navigator.clipboard.write([item]).then(function() {
-              alert('圖片已複製到剪貼簿！');
-            }).catch(function(err) {
-              alert('複製失敗：' + err);
-            });
-          }
-        }, 'image/png');
-      });
-    });
-
-    copyBase64ClipboardBtn.addEventListener('click', function() {
-      html2canvas(resultContainer).then(function(canvas) {
-        var dataURL = canvas.toDataURL('image/png');
-        navigator.clipboard.writeText(dataURL).then(function() {
-          alert('圖片的 Base64 已複製到剪貼簿！');
-        }).catch(function(err) {
-          alert('複製失敗：' + err);
-        });
-      });
-    });
-
-    // Format SQL 按鈕
-    formatBtn.addEventListener('click', formatSQL);
-
-    function minifySQL() {
+    function minifySQL(removeComments) {
       try {
-        var sql = sqlInput.value;
-        var minified = sql
-          .replace(/\s+/g, ' ')
-          .replace(/\s*,\s*/g, ', ')
-          .trim();
+        let sql = sqlInput.value;
+        if (removeComments) {
+          sql = sql.replace(/\/\*[\s\S]*?\*\//g, '');
+          sql = sql.replace(/--[^\n]*/g, '');
+        }
+        const minified = sql.replace(/\s+/g, ' ').replace(/\s*,\s*/g, ', ').trim();
         result.textContent = minified;
         Prism.highlightElement(result);
       } catch (error) {
@@ -157,7 +198,60 @@
       }
     }
 
-    minifyBtn.addEventListener('click', minifySQL);
+    const debouncedFormat = debounce(formatSQL, 300);
+    sqlInput.addEventListener('input', () => { updateMeta(); debouncedFormat(); });
+    dialectSelect.addEventListener('change', formatSQL);
+
+    document.getElementById('formatBtn').addEventListener('click', formatSQL);
+    document.getElementById('minifyKeepBtn').addEventListener('click', () => minifySQL(false));
+    document.getElementById('minifyRemoveBtn').addEventListener('click', () => minifySQL(true));
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      sqlInput.value = '';
+      result.textContent = '';
+      updateMeta();
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', () => {
+      sqlInput.value = result.textContent;
+      updateMeta();
+    });
+
+    document.getElementById('copyClipboardBtn').addEventListener('click', () => {
+      navigator.clipboard.writeText(result.textContent)
+        .then(() => showToast('格式化結果已複製到剪貼簿！'))
+        .catch(err => showToast('複製失敗：' + err, true));
+    });
+
+    document.getElementById('downloadImageBtn').addEventListener('click', () => {
+      html2canvas(resultContainer).then(canvas => {
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = 'formatted_sql_' + Math.floor(Date.now() / 1000) + '.png';
+        link.click();
+      });
+    });
+
+    document.getElementById('copyImageClipboardBtn').addEventListener('click', () => {
+      html2canvas(resultContainer).then(canvas => {
+        canvas.toBlob(blob => {
+          if (!blob) return;
+          navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+            .then(() => showToast('圖片已複製到剪貼簿！'))
+            .catch(err => showToast('複製失敗：' + err, true));
+        }, 'image/png');
+      });
+    });
+
+    document.getElementById('copyBase64ClipboardBtn').addEventListener('click', () => {
+      html2canvas(resultContainer).then(canvas => {
+        navigator.clipboard.writeText(canvas.toDataURL('image/png'))
+          .then(() => showToast('圖片的 Base64 已複製到剪貼簿！'))
+          .catch(err => showToast('複製失敗：' + err, true));
+      });
+    });
+
+    updateMeta();
   </script>
 </body>
 </html>
