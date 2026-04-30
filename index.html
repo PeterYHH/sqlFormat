@@ -56,6 +56,7 @@
     button.secondary:hover { background-color: #5a6268; }
     button.danger { background-color: #c0392b; }
     button.danger:hover { background-color: #a93226; }
+    .shortcut { font-size: 12px; opacity: 0.7; margin-left: 6px; }
 
     #resultContainer { background-color: #6BAA75; padding: 15px; border-radius: 4px; overflow-x: auto; margin: 16px 0; }
     pre { margin: 0; white-space: pre-wrap; word-wrap: break-word; }
@@ -96,6 +97,11 @@
       <span class="input-label">輸入 SQL 語句</span>
       <div class="input-meta">
         <span id="inputMeta">0 行 · 0 字元</span>
+        <select id="indentSelect">
+          <option value="2">縮排 2 格</option>
+          <option value="4">縮排 4 格</option>
+          <option value="tab">縮排 Tab</option>
+        </select>
         <select id="dialectSelect">
           <option value="sql">Standard SQL</option>
           <option value="mysql">MySQL</option>
@@ -115,9 +121,10 @@
     <textarea id="sqlInput" placeholder="請輸入 SQL 語句..."></textarea>
 
     <div class="btn-group">
-      <button id="formatBtn">Format SQL</button>
+      <button id="formatBtn">Format SQL <span class="shortcut">⌘↵</span></button>
       <button id="minifyKeepBtn" class="secondary">Minify（含註解）</button>
       <button id="minifyRemoveBtn" class="secondary">Minify（移除註解）</button>
+      <button id="shareBtn" class="secondary">複製分享連結</button>
       <button id="clearBtn" class="danger">清空</button>
     </div>
 
@@ -145,8 +152,47 @@
     const result = document.getElementById('result');
     const inputMeta = document.getElementById('inputMeta');
     const dialectSelect = document.getElementById('dialectSelect');
+    const indentSelect = document.getElementById('indentSelect');
     const resultContainer = document.getElementById('resultContainer');
     const toast = document.getElementById('toast');
+
+    // UTF-8 safe base64 encode/decode for URL sharing
+    function encodeSQL(sql) {
+      return btoa(String.fromCharCode(...new TextEncoder().encode(sql)));
+    }
+    function decodeSQL(b64) {
+      try {
+        return new TextDecoder().decode(Uint8Array.from(atob(b64), c => c.charCodeAt(0)));
+      } catch {
+        return null;
+      }
+    }
+
+    function saveToStorage() {
+      localStorage.setItem('sqlformat_sql', sqlInput.value);
+      localStorage.setItem('sqlformat_dialect', dialectSelect.value);
+      localStorage.setItem('sqlformat_indent', indentSelect.value);
+    }
+
+    function loadFromStorage() {
+      const params = new URLSearchParams(location.search);
+      const urlSQL = params.get('sql');
+      if (urlSQL) {
+        const decoded = decodeSQL(urlSQL);
+        if (decoded !== null) sqlInput.value = decoded;
+        const urlDialect = params.get('dialect');
+        if (urlDialect) dialectSelect.value = urlDialect;
+        const urlIndent = params.get('indent');
+        if (urlIndent) indentSelect.value = urlIndent;
+      } else {
+        const saved = localStorage.getItem('sqlformat_sql');
+        if (saved) sqlInput.value = saved;
+        const dialect = localStorage.getItem('sqlformat_dialect');
+        if (dialect) dialectSelect.value = dialect;
+        const indent = localStorage.getItem('sqlformat_indent');
+        if (indent) indentSelect.value = indent;
+      }
+    }
 
     let toastTimer;
     function showToast(msg, isError = false) {
@@ -170,11 +216,17 @@
       };
     }
 
+    function getIndentOptions() {
+      const val = indentSelect.value;
+      if (val === 'tab') return { useTabs: true };
+      return { tabWidth: parseInt(val) };
+    }
+
     function formatSQL() {
       try {
         const sql = sqlInput.value;
         const dialect = dialectSelect.value;
-        let formatted = sqlFormatter.format(sql, { language: dialect });
+        let formatted = sqlFormatter.format(sql, { language: dialect, ...getIndentOptions() });
         formatted = formatted.replace(/!\s+=/g, '!=').replace(/\|\s+\|/g, '||');
         result.textContent = formatted;
         Prism.highlightElement(result);
@@ -198,23 +250,45 @@
       }
     }
 
+    // Cmd+Enter (Mac) / Ctrl+Enter (Windows) 觸發 Format
+    document.addEventListener('keydown', e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        formatSQL();
+      }
+    });
+
     const debouncedFormat = debounce(formatSQL, 300);
-    sqlInput.addEventListener('input', () => { updateMeta(); debouncedFormat(); });
-    dialectSelect.addEventListener('change', formatSQL);
+    sqlInput.addEventListener('input', () => { updateMeta(); saveToStorage(); debouncedFormat(); });
+    dialectSelect.addEventListener('change', () => { saveToStorage(); formatSQL(); });
+    indentSelect.addEventListener('change', () => { saveToStorage(); formatSQL(); });
 
     document.getElementById('formatBtn').addEventListener('click', formatSQL);
     document.getElementById('minifyKeepBtn').addEventListener('click', () => minifySQL(false));
     document.getElementById('minifyRemoveBtn').addEventListener('click', () => minifySQL(true));
 
+    document.getElementById('shareBtn').addEventListener('click', () => {
+      const url = new URL(location.href);
+      url.search = '';
+      url.searchParams.set('sql', encodeSQL(sqlInput.value));
+      url.searchParams.set('dialect', dialectSelect.value);
+      url.searchParams.set('indent', indentSelect.value);
+      navigator.clipboard.writeText(url.toString())
+        .then(() => showToast('分享連結已複製到剪貼簿！'))
+        .catch(err => showToast('複製失敗：' + err, true));
+    });
+
     document.getElementById('clearBtn').addEventListener('click', () => {
       sqlInput.value = '';
       result.textContent = '';
       updateMeta();
+      saveToStorage();
     });
 
     document.getElementById('copyBtn').addEventListener('click', () => {
       sqlInput.value = result.textContent;
       updateMeta();
+      saveToStorage();
     });
 
     document.getElementById('copyClipboardBtn').addEventListener('click', () => {
@@ -251,7 +325,9 @@
       });
     });
 
+    loadFromStorage();
     updateMeta();
+    if (sqlInput.value) formatSQL();
   </script>
 </body>
 </html>
