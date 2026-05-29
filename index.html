@@ -66,10 +66,74 @@
     button.danger:hover { background-color: #a93226; }
     .shortcut { font-size: 12px; opacity: 0.7; margin-left: 6px; }
 
-    #resultContainer { background-color: #6BAA75; padding: 15px; border-radius: 4px; overflow-x: auto; margin: 16px 0; }
+    /* 結果區：淺色程式編輯器風格 */
+    #resultContainer {
+      background: #ffffff;
+      border: 1px solid #e2e8ed;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(12, 71, 103, 0.08);
+      overflow: hidden;
+      margin: 16px 0;
+    }
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 16px;
+      background: linear-gradient(180deg, #f8fafc 0%, #eef2f6 100%);
+      border-bottom: 1px solid #e2e8ed;
+    }
+    .result-dots { display: flex; gap: 7px; }
+    .result-dots span {
+      width: 12px; height: 12px; border-radius: 50%; display: block;
+      box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.12);
+    }
+    .dot-red { background: #ff5f57; }
+    .dot-yellow { background: #febc2e; }
+    .dot-green { background: #28c840; }
+    .result-title {
+      color: #5a6b7b; font-size: 13px;
+      font-family: 'SF Mono', Menlo, Consolas, monospace;
+      letter-spacing: 0.3px;
+    }
+    .result-lang {
+      margin-left: auto;
+      color: #0c4767; font-size: 12px; font-weight: 500;
+      background: rgba(12, 71, 103, 0.08);
+      border: 1px solid rgba(12, 71, 103, 0.18);
+      padding: 3px 11px; border-radius: 20px;
+      white-space: nowrap;
+    }
+    #resultBody { padding: 18px 20px; overflow-x: auto; background: #ffffff; }
     pre { margin: 0; white-space: pre-wrap; word-wrap: break-word; }
-    code { color: #f8f9fa; }
-    .token { background: transparent !important; }
+    #resultBody pre,
+    #resultBody code[class*="language-"] {
+      background: transparent !important;
+      text-shadow: none !important;
+    }
+    code {
+      color: #1f2d3a;
+      font-family: 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+      font-size: 14px; line-height: 1.65; text-shadow: none;
+    }
+    #result:empty::before {
+      content: '格式化後的 SQL 會顯示在這裡…';
+      color: #9aa7b2; font-style: italic;
+    }
+    /* 淺色語法高亮配色（覆寫 Prism 預設） */
+    #resultBody .token { background: transparent !important; }
+    #resultBody .token.keyword { color: #0c4767; font-weight: 600; }
+    #resultBody .token.function { color: #8250df; }
+    #resultBody .token.string,
+    #resultBody .token.char { color: #1a7f37; }
+    #resultBody .token.number { color: #b35900; }
+    #resultBody .token.boolean,
+    #resultBody .token.constant,
+    #resultBody .token.null { color: #b35900; }
+    #resultBody .token.operator { color: #0c4767; }
+    #resultBody .token.punctuation { color: #6a737d; }
+    #resultBody .token.comment { color: #8a99a6; font-style: italic; }
+    #resultBody .token.variable { color: #1f2d3a; }
 
     .toast {
       position: fixed;
@@ -155,7 +219,14 @@
 
     <h2>格式化後結果：</h2>
     <div id="resultContainer">
-      <pre><code id="result" class="language-sql"></code></pre>
+      <div class="result-header">
+        <div class="result-dots"><span class="dot-red"></span><span class="dot-yellow"></span><span class="dot-green"></span></div>
+        <span class="result-title">formatted.sql</span>
+        <span class="result-lang" id="resultLang">Standard SQL</span>
+      </div>
+      <div id="resultBody">
+        <pre><code id="result" class="language-sql"></code></pre>
+      </div>
     </div>
 
     <div class="btn-group">
@@ -179,7 +250,13 @@
     const dialectSelect = document.getElementById('dialectSelect');
     const indentSelect = document.getElementById('indentSelect');
     const resultContainer = document.getElementById('resultContainer');
+    const resultLang = document.getElementById('resultLang');
     const toast = document.getElementById('toast');
+
+    // 結果區標題列顯示目前選擇的 SQL 方言
+    function updateLang() {
+      resultLang.textContent = dialectSelect.options[dialectSelect.selectedIndex].text;
+    }
 
     // UTF-8 safe base64 encode/decode for URL sharing
     function encodeSQL(sql) {
@@ -285,7 +362,7 @@
 
     const debouncedFormat = debounce(formatSQL, 300);
     sqlInput.addEventListener('input', () => { updateMeta(); saveToStorage(); debouncedFormat(); });
-    dialectSelect.addEventListener('change', () => { saveToStorage(); formatSQL(); });
+    dialectSelect.addEventListener('change', () => { saveToStorage(); updateLang(); formatSQL(); });
     indentSelect.addEventListener('change', () => { saveToStorage(); formatSQL(); });
 
     document.getElementById('formatBtn').addEventListener('click', formatSQL);
@@ -352,6 +429,7 @@
 
     loadFromStorage();
     updateMeta();
+    updateLang();
     if (sqlInput.value) formatSQL();
   </script>
 </body>
