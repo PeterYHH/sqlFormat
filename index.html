@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <title>SQL 即時格式化工具</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="favicon.svg">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sql-formatter/15.6.9/sql-formatter.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" />
   <link href="https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap" rel="stylesheet">
@@ -15,6 +17,8 @@
       padding: 24px clamp(16px, 4vw, 60px);
     }
     h1, h2 { text-align: center; margin-bottom: 20px; }
+    h1 { display: flex; align-items: center; justify-content: center; gap: 12px; }
+    h1 .logo { width: 40px; height: 40px; flex-shrink: 0; }
 
     .input-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
     .input-label { font-weight: 500; font-size: 15px; }
@@ -112,7 +116,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>SQL 即時格式化工具</h1>
+    <h1><img class="logo" src="favicon.svg" alt="">SQL 即時格式化工具</h1>
 
     <div class="input-header">
       <span class="input-label">輸入 SQL 語句</span>

@@ -1,0 +1,74 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SQL 格式化工具">
+  <defs>
+    <!-- 背景：深藍漸層（品牌色 #0c4767） -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1c79ab"/>
+      <stop offset="52%" stop-color="#0c4767"/>
+      <stop offset="100%" stop-color="#06283b"/>
+    </linearGradient>
+    <!-- 背景頂部玻璃光澤 -->
+    <linearGradient id="bgGloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.30"/>
+      <stop offset="42%" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <!-- 圓柱側面：左右暗、中央亮，做出圓筒立體感 -->
+    <linearGradient id="cylBody" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0c4767"/>
+      <stop offset="20%" stop-color="#2f93c9"/>
+      <stop offset="48%" stop-color="#8fdcf7"/>
+      <stop offset="60%" stop-color="#cdeeff"/>
+      <stop offset="78%" stop-color="#2a86bd"/>
+      <stop offset="100%" stop-color="#0a3a54"/>
+    </linearGradient>
+    <!-- 頂面圓盤 -->
+    <linearGradient id="diskTop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#eafaff"/>
+      <stop offset="100%" stop-color="#8fd6f1"/>
+    </linearGradient>
+    <radialGradient id="diskSheen" cx="38%" cy="32%" r="75%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="55%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <!-- 星芒外發光 -->
+    <radialGradient id="sparkGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#aef5c4" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#6BAA75" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="2.5" stdDeviation="2.5" flood-color="#03202f" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- 圓角方形背景（app icon 風格） -->
+  <rect x="8" y="8" width="112" height="112" rx="27" fill="url(#bgGrad)"/>
+  <rect x="8" y="8" width="112" height="112" rx="27" fill="url(#bgGloss)"/>
+  <rect x="8.75" y="8.75" width="110.5" height="110.5" rx="26.25" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="1.5"/>
+
+  <!-- 資料庫圓柱 -->
+  <g filter="url(#softShadow)">
+    <!-- 圓柱本體（含底部前緣弧線） -->
+    <path d="M29 40 L29 88 A31 10.5 0 0 0 91 88 L91 40 Z" fill="url(#cylBody)"/>
+
+    <!-- 分層刻痕：暗弧 + 下方亮弧（內凹立體感） -->
+    <path d="M29 57 A31 10.5 0 0 0 91 57" fill="none" stroke="#06324a" stroke-opacity="0.55" stroke-width="2"/>
+    <path d="M29 58.6 A31 10.5 0 0 0 91 58.6" fill="none" stroke="#dff4ff" stroke-opacity="0.45" stroke-width="1.4"/>
+    <path d="M29 73 A31 10.5 0 0 0 91 73" fill="none" stroke="#06324a" stroke-opacity="0.55" stroke-width="2"/>
+    <path d="M29 74.6 A31 10.5 0 0 0 91 74.6" fill="none" stroke="#dff4ff" stroke-opacity="0.45" stroke-width="1.4"/>
+
+    <!-- 頂面圓盤 + 反光 -->
+    <ellipse cx="60" cy="40" rx="31" ry="10.5" fill="url(#diskTop)" stroke="#5fb9dd" stroke-opacity="0.5" stroke-width="1"/>
+    <ellipse cx="60" cy="40" rx="31" ry="10.5" fill="url(#diskSheen)"/>
+    <!-- 頂面細長高光 -->
+    <ellipse cx="54" cy="37" rx="17" ry="3.4" fill="#ffffff" fill-opacity="0.75"/>
+  </g>
+
+  <!-- 星芒（格式化＝閃亮變漂亮） -->
+  <g transform="translate(96 30)">
+    <circle r="14" fill="url(#sparkGlow)"/>
+    <path d="M0 -11 C1.4 -3.4 3.4 -1.4 11 0 C3.4 1.4 1.4 3.4 0 11 C-1.4 3.4 -3.4 1.4 -11 0 C-3.4 -1.4 -1.4 -3.4 0 -11 Z" fill="#ffffff"/>
+  </g>
+  <g transform="translate(82 16)">
+    <path d="M0 -5 C0.6 -1.5 1.5 -0.6 5 0 C1.5 0.6 0.6 1.5 0 5 C-0.6 1.5 -1.5 0.6 -5 0 C-1.5 -0.6 -0.6 -1.5 0 -5 Z" fill="#ffffff" fill-opacity="0.9"/>
+  </g>
+</svg>
