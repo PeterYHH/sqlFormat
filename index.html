@@ -16,8 +16,7 @@
       box-sizing: border-box;
       padding: 24px clamp(16px, 4vw, 60px);
     }
-    h1, h2 { text-align: center; margin-bottom: 20px; }
-    h1 { display: flex; align-items: center; justify-content: center; gap: 12px; }
+    h1 { text-align: center; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 12px; }
     h1 .logo { width: 40px; height: 40px; flex-shrink: 0; }
 
     .input-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
@@ -46,44 +45,99 @@
       min-height: 200px;
     }
 
-    .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    /* ── 上方操作列 ── */
+    .action-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 12px 0 20px;
+      flex-wrap: wrap;
+    }
+    .action-bar .spacer { margin-left: auto; }
 
     button {
       background-color: #0c4767;
       color: white;
       border: none;
-      padding: 10px 20px;
-      border-radius: 4px;
+      padding: 9px 18px;
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 15px;
-      transition: background-color 0.3s ease;
+      font-size: 14px;
+      font-family: 'Roboto', sans-serif;
+      font-weight: 500;
+      transition: background-color 0.2s ease;
       white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
     button:hover { background-color: #0a3d5a; }
-    button.secondary { background-color: #6c757d; }
-    button.secondary:hover { background-color: #5a6268; }
-    button.danger { background-color: #c0392b; }
-    button.danger:hover { background-color: #a93226; }
-    .shortcut { font-size: 12px; opacity: 0.7; margin-left: 6px; }
+    .btn-secondary { background-color: #6c757d; }
+    .btn-secondary:hover { background-color: #5a6268; }
+    .btn-ghost {
+      background: transparent;
+      color: #5a6b7b;
+      border: 1px solid #ced4da;
+    }
+    .btn-ghost:hover { background: #f0f4f8; color: #333; }
+    .btn-danger { background-color: #c0392b; }
+    .btn-danger:hover { background-color: #a93226; }
+    .shortcut { font-size: 11px; opacity: 0.65; }
 
-    /* 結果區：淺色程式編輯器風格 */
+    /* ── 下拉選單 ── */
+    .dropdown { position: relative; }
+    .dropdown-arrow { font-size: 10px; opacity: 0.8; }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      background: white;
+      border: 1px solid #e2e8ed;
+      border-radius: 8px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+      min-width: 160px;
+      z-index: 200;
+      overflow: hidden;
+    }
+    .dropdown-menu.open { display: block; }
+    .dropdown-menu button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: none;
+      color: #333;
+      font-size: 14px;
+      font-weight: 400;
+      padding: 10px 16px;
+      border-radius: 0;
+      border: none;
+    }
+    .dropdown-menu button:hover { background: #f0f4f8; color: #0c4767; }
+    .dropdown-menu .menu-divider {
+      height: 1px;
+      background: #e2e8ed;
+      margin: 4px 0;
+    }
+
+    /* ── 結果區 ── */
     #resultContainer {
       background: #ffffff;
       border: 1px solid #e2e8ed;
       border-radius: 12px;
       box-shadow: 0 6px 20px rgba(12, 71, 103, 0.08);
       overflow: hidden;
-      margin: 16px 0;
+      margin: 0;
     }
     .result-header {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 11px 16px;
+      padding: 10px 14px;
       background: linear-gradient(180deg, #f8fafc 0%, #eef2f6 100%);
       border-bottom: 1px solid #e2e8ed;
     }
-    .result-dots { display: flex; gap: 7px; }
+    .result-dots { display: flex; gap: 7px; flex-shrink: 0; }
     .result-dots span {
       width: 12px; height: 12px; border-radius: 50%; display: block;
       box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.12);
@@ -95,15 +149,46 @@
       color: #5a6b7b; font-size: 13px;
       font-family: 'SF Mono', Menlo, Consolas, monospace;
       letter-spacing: 0.3px;
+      flex-shrink: 0;
     }
-    .result-lang {
+
+    /* 結果區標題列裡的小按鈕 */
+    .result-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       margin-left: auto;
+    }
+    .hdr-btn {
+      background: transparent;
+      color: #5a6b7b;
+      border: 1px solid #d0d9e1;
+      padding: 4px 11px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: 'Roboto', sans-serif;
+      font-weight: 500;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .hdr-btn:hover { background: #e8eef3; color: #0c4767; border-color: #b0bec8; }
+
+    /* 匯出下拉靠右對齊 */
+    .dropdown-right .dropdown-menu { left: auto; right: 0; }
+
+    .result-lang {
       color: #0c4767; font-size: 12px; font-weight: 500;
       background: rgba(12, 71, 103, 0.08);
       border: 1px solid rgba(12, 71, 103, 0.18);
       padding: 3px 11px; border-radius: 20px;
       white-space: nowrap;
+      flex-shrink: 0;
     }
+
     #resultBody { padding: 18px 20px; overflow-x: auto; background: #ffffff; }
     pre { margin: 0; white-space: pre-wrap; word-wrap: break-word; }
     #resultBody pre,
@@ -120,7 +205,7 @@
       content: '格式化後的 SQL 會顯示在這裡…';
       color: #9aa7b2; font-style: italic;
     }
-    /* 淺色語法高亮配色（覆寫 Prism 預設） */
+    /* 淺色語法高亮配色 */
     #resultBody .token { background: transparent !important; }
     #resultBody .token.keyword { color: #c0392b; font-weight: 600; }
     #resultBody .token.function { color: #8250df; }
@@ -156,25 +241,28 @@
     @media (max-width: 900px) {
       .input-meta { gap: 8px; }
       select { font-size: 13px; padding: 5px 8px; }
+      .result-title { display: none; }
     }
 
     /* 手機 */
     @media (max-width: 600px) {
       h1 { font-size: 22px; }
-      h2 { font-size: 18px; }
       .input-header { flex-direction: column; align-items: flex-start; }
       .input-meta { width: 100%; }
       .input-meta select { flex: 1; min-width: 0; }
       textarea { min-height: 160px; font-size: 14px; }
-      .btn-group { flex-direction: column; }
-      button { width: 100%; }
+      .action-bar { gap: 6px; }
+      .action-bar .spacer { width: 100%; margin: 0; }
+      .result-actions { gap: 4px; }
+      .hdr-btn { padding: 4px 8px; font-size: 11px; }
+      .result-lang { display: none; }
     }
 
     /* 小手機 */
     @media (max-width: 400px) {
       .container { padding: 16px 12px; }
       h1 { font-size: 20px; }
-      button { font-size: 14px; padding: 9px 16px; }
+      button { font-size: 13px; padding: 8px 14px; }
     }
   </style>
 </head>
@@ -209,32 +297,57 @@
 
     <textarea id="sqlInput" placeholder="請輸入 SQL 語句..."></textarea>
 
-    <div class="btn-group">
+    <!-- 操作列：左側主操作 / 右側輔助 -->
+    <div class="action-bar">
       <button id="formatBtn">Format SQL <span class="shortcut">⌘↵</span></button>
-      <button id="minifyKeepBtn" class="secondary">Minify（含註解）</button>
-      <button id="minifyRemoveBtn" class="secondary">Minify（移除註解）</button>
-      <button id="shareBtn" class="secondary">複製分享連結</button>
-      <button id="clearBtn" class="danger">清空</button>
+
+      <div class="dropdown" id="minifyDropdown">
+        <button class="btn-secondary dropdown-toggle" id="minifyToggle">
+          Minify <span class="dropdown-arrow">▾</span>
+        </button>
+        <div class="dropdown-menu" id="minifyMenu">
+          <button id="minifyKeepBtn">保留註解</button>
+          <button id="minifyRemoveBtn">移除註解</button>
+        </div>
+      </div>
+
+      <div class="spacer"></div>
+
+      <button id="shareBtn" class="btn-ghost">分享連結</button>
+      <button id="clearBtn" class="btn-danger">清空</button>
     </div>
 
-    <h2>格式化後結果：</h2>
     <div id="resultContainer">
       <div class="result-header">
-        <div class="result-dots"><span class="dot-red"></span><span class="dot-yellow"></span><span class="dot-green"></span></div>
+        <div class="result-dots">
+          <span class="dot-red"></span>
+          <span class="dot-yellow"></span>
+          <span class="dot-green"></span>
+        </div>
         <span class="result-title">formatted.sql</span>
+
+        <!-- 結果操作按鈕 -->
+        <div class="result-actions">
+          <button class="hdr-btn" id="copyClipboardBtn">複製文字</button>
+          <button class="hdr-btn" id="copyBtn">回填輸入</button>
+          <div class="dropdown dropdown-right" id="exportDropdown">
+            <button class="hdr-btn dropdown-toggle" id="exportToggle">
+              匯出圖片 <span class="dropdown-arrow">▾</span>
+            </button>
+            <div class="dropdown-menu" id="exportMenu">
+              <button id="downloadImageBtn">下載 PNG</button>
+              <div class="menu-divider"></div>
+              <button id="copyImageClipboardBtn">複製圖片至剪貼簿</button>
+              <button id="copyBase64ClipboardBtn">複製 Base64</button>
+            </div>
+          </div>
+        </div>
+
         <span class="result-lang" id="resultLang">Standard SQL</span>
       </div>
       <div id="resultBody">
         <pre><code id="result" class="language-sql"></code></pre>
       </div>
-    </div>
-
-    <div class="btn-group">
-      <button id="copyBtn">複製結果至輸入區</button>
-      <button id="copyClipboardBtn">複製結果至剪貼簿</button>
-      <button id="downloadImageBtn">下載為圖片</button>
-      <button id="copyImageClipboardBtn">圖片複製至剪貼簿</button>
-      <button id="copyBase64ClipboardBtn">圖片轉 Base64 至剪貼簿</button>
     </div>
   </div>
 
@@ -253,7 +366,25 @@
     const resultLang = document.getElementById('resultLang');
     const toast = document.getElementById('toast');
 
-    // 結果區標題列顯示目前選擇的 SQL 方言
+    // ── 下拉選單開關 ──
+    function setupDropdown(toggleId, menuId) {
+      const toggle = document.getElementById(toggleId);
+      const menu = document.getElementById(menuId);
+      toggle.addEventListener('click', e => {
+        e.stopPropagation();
+        const isOpen = menu.classList.contains('open');
+        closeAllDropdowns();
+        if (!isOpen) menu.classList.add('open');
+      });
+    }
+    function closeAllDropdowns() {
+      document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));
+    }
+    document.addEventListener('click', closeAllDropdowns);
+    setupDropdown('minifyToggle', 'minifyMenu');
+    setupDropdown('exportToggle', 'exportMenu');
+
+    // 結果區標題列顯示目前方言
     function updateLang() {
       resultLang.textContent = dialectSelect.options[dialectSelect.selectedIndex].text;
     }
@@ -352,7 +483,7 @@
       }
     }
 
-    // Cmd+Enter (Mac) / Ctrl+Enter (Windows) 觸發 Format
+    // ⌘↵ / Ctrl+↵
     document.addEventListener('keydown', e => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault();
@@ -366,8 +497,15 @@
     indentSelect.addEventListener('change', () => { saveToStorage(); formatSQL(); });
 
     document.getElementById('formatBtn').addEventListener('click', formatSQL);
-    document.getElementById('minifyKeepBtn').addEventListener('click', () => minifySQL(false));
-    document.getElementById('minifyRemoveBtn').addEventListener('click', () => minifySQL(true));
+
+    document.getElementById('minifyKeepBtn').addEventListener('click', () => {
+      closeAllDropdowns();
+      minifySQL(false);
+    });
+    document.getElementById('minifyRemoveBtn').addEventListener('click', () => {
+      closeAllDropdowns();
+      minifySQL(true);
+    });
 
     document.getElementById('shareBtn').addEventListener('click', () => {
       const url = new URL(location.href);
@@ -400,6 +538,7 @@
     });
 
     document.getElementById('downloadImageBtn').addEventListener('click', () => {
+      closeAllDropdowns();
       html2canvas(resultContainer).then(canvas => {
         const link = document.createElement('a');
         link.href = canvas.toDataURL('image/png');
@@ -409,6 +548,7 @@
     });
 
     document.getElementById('copyImageClipboardBtn').addEventListener('click', () => {
+      closeAllDropdowns();
       html2canvas(resultContainer).then(canvas => {
         canvas.toBlob(blob => {
           if (!blob) return;
@@ -420,6 +560,7 @@
     });
 
     document.getElementById('copyBase64ClipboardBtn').addEventListener('click', () => {
+      closeAllDropdowns();
       html2canvas(resultContainer).then(canvas => {
         navigator.clipboard.writeText(canvas.toDataURL('image/png'))
           .then(() => showToast('圖片的 Base64 已複製到剪貼簿！'))
