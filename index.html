@@ -299,7 +299,15 @@
 
     <!-- 操作列：左側主操作 / 右側輔助 -->
     <div class="action-bar">
-      <button id="formatBtn">Format SQL <span class="shortcut">⌘↵</span></button>
+      <div class="dropdown" id="formatDropdown">
+        <button class="dropdown-toggle" id="formatToggle">
+          Format SQL <span class="shortcut">⌘↵</span> <span class="dropdown-arrow">▾</span>
+        </button>
+        <div class="dropdown-menu" id="formatMenu">
+          <button id="formatKeepBtn">保留註解</button>
+          <button id="formatRemoveBtn">移除註解</button>
+        </div>
+      </div>
 
       <div class="dropdown" id="minifyDropdown">
         <button class="btn-secondary dropdown-toggle" id="minifyToggle">
@@ -381,6 +389,7 @@
       document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));
     }
     document.addEventListener('click', closeAllDropdowns);
+    setupDropdown('formatToggle', 'formatMenu');
     setupDropdown('minifyToggle', 'minifyMenu');
     setupDropdown('exportToggle', 'exportMenu');
 
@@ -455,9 +464,15 @@
       return { tabWidth: parseInt(val) };
     }
 
-    function formatSQL() {
+    // 清掉 /* */ 與 -- 兩種註解，Format 與 Minify 的「移除註解」共用
+    function stripComments(sql) {
+      return sql.replace(/\/\*[\s\S]*?\*\//g, '').replace(/--[^\n]*/g, '');
+    }
+
+    function formatSQL(removeComments = false) {
       try {
-        const sql = sqlInput.value;
+        let sql = sqlInput.value;
+        if (removeComments) sql = stripComments(sql);
         const dialect = dialectSelect.value;
         let formatted = sqlFormatter.format(sql, { language: dialect, ...getIndentOptions() });
         formatted = formatted.replace(/!\s+=/g, '!=').replace(/\|\s+\|/g, '||');
@@ -471,10 +486,7 @@
     function minifySQL(removeComments) {
       try {
         let sql = sqlInput.value;
-        if (removeComments) {
-          sql = sql.replace(/\/\*[\s\S]*?\*\//g, '');
-          sql = sql.replace(/--[^\n]*/g, '');
-        }
+        if (removeComments) sql = stripComments(sql);
         const minified = sql.replace(/\s+/g, ' ').replace(/\s*,\s*/g, ', ').trim();
         result.textContent = minified;
         Prism.highlightElement(result);
@@ -496,7 +508,14 @@
     dialectSelect.addEventListener('change', () => { saveToStorage(); updateLang(); formatSQL(); });
     indentSelect.addEventListener('change', () => { saveToStorage(); formatSQL(); });
 
-    document.getElementById('formatBtn').addEventListener('click', formatSQL);
+    document.getElementById('formatKeepBtn').addEventListener('click', () => {
+      closeAllDropdowns();
+      formatSQL(false);
+    });
+    document.getElementById('formatRemoveBtn').addEventListener('click', () => {
+      closeAllDropdowns();
+      formatSQL(true);
+    });
 
     document.getElementById('minifyKeepBtn').addEventListener('click', () => {
       closeAllDropdowns();
