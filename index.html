@@ -228,6 +228,8 @@
       padding: 1px 4px;
       font-weight: 600;
     }
+    /* MyBatis 動態標籤 <if> <where> 等，用獨立色與 SQL 關鍵字區分 */
+    #resultBody .token.mybatis-tag { color: #7048e8; font-weight: 600; }
 
     .toast {
       position: fixed;
@@ -346,6 +348,7 @@
       <div class="spacer"></div>
 
       <input type="file" id="fileInput" accept=".sql,.txt,text/plain" hidden>
+      <button id="sampleBtn" class="btn-ghost">範例</button>
       <button id="importFileBtn" class="btn-ghost">匯入檔案</button>
       <button id="shareBtn" class="btn-ghost">分享連結</button>
       <button id="clearBtn" class="btn-danger">清空</button>
@@ -414,7 +417,8 @@
     // 否則 # 會被當成註解），搭配 CSS 加底色凸顯
     if (Prism.languages.sql) {
       Prism.languages.insertBefore('sql', 'comment', {
-        'mybatis-param': { pattern: /[#$]\{[^}]*\}/ }
+        'mybatis-param': { pattern: /[#$]\{[^}]*\}/ },
+        'mybatis-tag': { pattern: /<\/?[a-zA-Z][\w:.-]*(?:\s+[a-zA-Z_:][\w:.-]*(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)*\s*\/?>/ }
       });
     }
 
@@ -563,12 +567,83 @@
         .replace(/MBP(\d+)MBP/g, (_, i) => tokens[+i]);
     }
 
+    // 把 sql-formatter 的英文錯誤轉成白話提示顯示在結果區
+    // （不跳 toast，避免打字自動格式化時一直閃提示）
+    function showFormatError(error) {
+      const raw = String(error);
+      let hint;
+      if (/Unexpected|Parse error/i.test(raw)) {
+        hint = dialectSelect.value === 'sql'
+          ? '這段 SQL 在「Standard SQL」方言下無法解析（例如用到 & 位元運算等）。試著把上方方言切成 MySQL 或你資料庫對應的方言再試一次。'
+          : '這段 SQL 無法解析，可能是方言不符或語法有誤。可換個方言，或檢查是否有打錯的地方。';
+      } else {
+        hint = '格式化失敗，請確認 SQL 語法是否正確。';
+      }
+      result.textContent = '⚠️ ' + hint;
+      console.warn('[SQL Formatter] 格式化錯誤：', raw);
+    }
+
+    // 目前縮排選項對應的實際縮排字串（給動態標籤排版用）
+    function getIndentString() {
+      return indentSelect.value === 'tab' ? '\t' : ' '.repeat(parseInt(indentSelect.value));
+    }
+
+    // 是否含 MyBatis 動態標籤（<if>、<where>、<foreach> 等）
+    function isDynamicMapper(sql) {
+      return /<\/?(if|where|foreach|set|choose|when|otherwise|trim|bind|sql|include|selectKey)\b/i.test(sql);
+    }
+
+    // 比對單一 XML 標籤；屬性值用引號包住的部分允許含 > （例如 test="a > b"）
+    const TAG_RE = /<\/?[a-zA-Z][\w:.-]*(?:\s+[a-zA-Z_:][\w:.-]*(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)*\s*\/?>/g;
+
+    // 格式化一段 SQL 片段；片段不完整（例如以 AND 開頭）而格式化失敗時原樣保留
+    function formatFragment(sql) {
+      const t = sql.trim();
+      if (!t) return null;
+      try { return formatCore(t); }
+      catch { return t; }
+    }
+
+    // 動態標籤感知格式化：標籤各自一行、依巢狀縮排，標籤間的 SQL 片段照常格式化
+    function formatWithTags(sql) {
+      const indent = getIndentString();
+      const parts = [];
+      let last = 0, m;
+      TAG_RE.lastIndex = 0;
+      while ((m = TAG_RE.exec(sql)) !== null) {
+        if (m.index > last) parts.push({ type: 'sql', text: sql.slice(last, m.index) });
+        parts.push({ type: 'tag', text: m[0] });
+        last = m.index + m[0].length;
+      }
+      if (last < sql.length) parts.push({ type: 'sql', text: sql.slice(last) });
+
+      const lines = [];
+      let depth = 0;
+      for (const p of parts) {
+        if (p.type === 'tag') {
+          const isClose = /^<\//.test(p.text);
+          const isSelf = /\/>$/.test(p.text);
+          if (isClose) depth = Math.max(0, depth - 1);
+          lines.push(indent.repeat(depth) + p.text.trim());
+          if (!isClose && !isSelf) depth++;
+        } else {
+          const f = formatFragment(p.text);
+          if (f === null) continue;
+          for (const ln of f.split('\n')) {
+            lines.push(ln === '' ? '' : indent.repeat(depth) + ln);
+          }
+        }
+      }
+      return lines.join('\n');
+    }
+
     function formatSQL(removeComments = false) {
       try {
-        result.textContent = formatCore(prepareInput(sqlInput.value, removeComments));
+        const prepared = prepareInput(sqlInput.value, removeComments);
+        result.textContent = isDynamicMapper(prepared) ? formatWithTags(prepared) : formatCore(prepared);
         Prism.highlightElement(result);
       } catch (error) {
-        result.textContent = '格式化出現錯誤：' + error;
+        showFormatError(error);
       }
     }
 
@@ -580,7 +655,7 @@
         result.textContent = out;
         Prism.highlightElement(result);
       } catch (error) {
-        result.textContent = 'MyBatis 轉換出現錯誤：' + error;
+        showFormatError(error);
       }
     }
 
@@ -592,7 +667,7 @@
         result.textContent = minified;
         Prism.highlightElement(result);
       } catch (error) {
-        result.textContent = 'Minify 出現錯誤：' + error;
+        showFormatError(error);
       }
     }
 
@@ -654,6 +729,16 @@
       result.textContent = '';
       updateMeta();
       saveToStorage();
+    });
+
+    // 一鍵載入範例：示範 #{} / ${} 佔位符、比較運算子與註解
+    const SAMPLE_SQL = "select u.id, u.name, u.age, u.created_at from users u join dept d on u.dept_id = d.id where u.status = #{status} and u.age >= #{minAge} and d.code in (${deptCodes}) /* 只取在職員工 */ order by u.created_at desc limit 20";
+    document.getElementById('sampleBtn').addEventListener('click', () => {
+      sqlInput.value = SAMPLE_SQL;
+      updateMeta();
+      saveToStorage();
+      formatSQL(false);
+      showToast('已載入範例 SQL');
     });
 
     document.getElementById('copyBtn').addEventListener('click', () => {
