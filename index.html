@@ -44,6 +44,7 @@
       resize: vertical;
       min-height: 200px;
     }
+    textarea.drag-over { border-color: #0c4767; box-shadow: 0 0 0 3px rgba(12, 71, 103, 0.15); }
 
     /* ── 上方操作列 ── */
     .action-bar {
@@ -274,6 +275,11 @@
       <span class="input-label">輸入 SQL 語句</span>
       <div class="input-meta">
         <span id="inputMeta">0 行 · 0 字元</span>
+        <select id="caseSelect">
+          <option value="preserve">大小寫：原樣</option>
+          <option value="upper">關鍵字大寫</option>
+          <option value="lower">關鍵字小寫</option>
+        </select>
         <select id="indentSelect">
           <option value="2">縮排 2 格</option>
           <option value="4">縮排 4 格</option>
@@ -321,6 +327,8 @@
 
       <div class="spacer"></div>
 
+      <input type="file" id="fileInput" accept=".sql,.txt,text/plain" hidden>
+      <button id="importFileBtn" class="btn-ghost">匯入檔案</button>
       <button id="shareBtn" class="btn-ghost">分享連結</button>
       <button id="clearBtn" class="btn-danger">清空</button>
     </div>
@@ -337,6 +345,15 @@
         <!-- 結果操作按鈕 -->
         <div class="result-actions">
           <button class="hdr-btn" id="copyClipboardBtn">複製文字</button>
+          <div class="dropdown" id="downloadDropdown">
+            <button class="hdr-btn dropdown-toggle" id="downloadToggle">
+              下載檔案 <span class="dropdown-arrow">▾</span>
+            </button>
+            <div class="dropdown-menu" id="downloadMenu">
+              <button id="downloadSqlBtn">下載 .sql</button>
+              <button id="downloadTxtBtn">下載 .txt</button>
+            </div>
+          </div>
           <button class="hdr-btn" id="copyBtn">回填輸入</button>
           <div class="dropdown dropdown-right" id="exportDropdown">
             <button class="hdr-btn dropdown-toggle" id="exportToggle">
@@ -370,6 +387,7 @@
     const inputMeta = document.getElementById('inputMeta');
     const dialectSelect = document.getElementById('dialectSelect');
     const indentSelect = document.getElementById('indentSelect');
+    const caseSelect = document.getElementById('caseSelect');
     const resultContainer = document.getElementById('resultContainer');
     const resultLang = document.getElementById('resultLang');
     const toast = document.getElementById('toast');
@@ -391,6 +409,7 @@
     document.addEventListener('click', closeAllDropdowns);
     setupDropdown('formatToggle', 'formatMenu');
     setupDropdown('minifyToggle', 'minifyMenu');
+    setupDropdown('downloadToggle', 'downloadMenu');
     setupDropdown('exportToggle', 'exportMenu');
 
     // 結果區標題列顯示目前方言
@@ -414,6 +433,7 @@
       localStorage.setItem('sqlformat_sql', sqlInput.value);
       localStorage.setItem('sqlformat_dialect', dialectSelect.value);
       localStorage.setItem('sqlformat_indent', indentSelect.value);
+      localStorage.setItem('sqlformat_case', caseSelect.value);
     }
 
     function loadFromStorage() {
@@ -426,6 +446,8 @@
         if (urlDialect) dialectSelect.value = urlDialect;
         const urlIndent = params.get('indent');
         if (urlIndent) indentSelect.value = urlIndent;
+        const urlCase = params.get('case');
+        if (urlCase) caseSelect.value = urlCase;
       } else {
         const saved = localStorage.getItem('sqlformat_sql');
         if (saved) sqlInput.value = saved;
@@ -433,6 +455,8 @@
         if (dialect) dialectSelect.value = dialect;
         const indent = localStorage.getItem('sqlformat_indent');
         if (indent) indentSelect.value = indent;
+        const kwCase = localStorage.getItem('sqlformat_case');
+        if (kwCase) caseSelect.value = kwCase;
       }
     }
 
@@ -474,7 +498,7 @@
         let sql = sqlInput.value;
         if (removeComments) sql = stripComments(sql);
         const dialect = dialectSelect.value;
-        let formatted = sqlFormatter.format(sql, { language: dialect, ...getIndentOptions() });
+        let formatted = sqlFormatter.format(sql, { language: dialect, keywordCase: caseSelect.value, ...getIndentOptions() });
         formatted = formatted.replace(/!\s+=/g, '!=').replace(/\|\s+\|/g, '||');
         result.textContent = formatted;
         Prism.highlightElement(result);
@@ -507,6 +531,7 @@
     sqlInput.addEventListener('input', () => { updateMeta(); saveToStorage(); debouncedFormat(); });
     dialectSelect.addEventListener('change', () => { saveToStorage(); updateLang(); formatSQL(); });
     indentSelect.addEventListener('change', () => { saveToStorage(); formatSQL(); });
+    caseSelect.addEventListener('change', () => { saveToStorage(); formatSQL(); });
 
     document.getElementById('formatKeepBtn').addEventListener('click', () => {
       closeAllDropdowns();
@@ -532,6 +557,7 @@
       url.searchParams.set('sql', encodeSQL(sqlInput.value));
       url.searchParams.set('dialect', dialectSelect.value);
       url.searchParams.set('indent', indentSelect.value);
+      url.searchParams.set('case', caseSelect.value);
       navigator.clipboard.writeText(url.toString())
         .then(() => showToast('分享連結已複製到剪貼簿！'))
         .catch(err => showToast('複製失敗：' + err, true));
@@ -549,6 +575,51 @@
       updateMeta();
       saveToStorage();
     });
+
+    // 匯入 .sql / .txt 檔案：讀進輸入框並自動格式化
+    function loadFile(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        sqlInput.value = reader.result;
+        updateMeta();
+        saveToStorage();
+        formatSQL();
+        showToast(`已匯入 ${file.name}`);
+      };
+      reader.onerror = () => showToast('讀取檔案失敗', true);
+      reader.readAsText(file);
+    }
+
+    const fileInput = document.getElementById('fileInput');
+    document.getElementById('importFileBtn').addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) loadFile(fileInput.files[0]);
+      fileInput.value = '';
+    });
+
+    // 直接把檔案拖進輸入框
+    sqlInput.addEventListener('dragover', e => { e.preventDefault(); sqlInput.classList.add('drag-over'); });
+    sqlInput.addEventListener('dragleave', () => sqlInput.classList.remove('drag-over'));
+    sqlInput.addEventListener('drop', e => {
+      e.preventDefault();
+      sqlInput.classList.remove('drag-over');
+      if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+    });
+
+    // 下載格式化結果為 .sql 或 .txt 檔
+    function downloadResult(ext) {
+      closeAllDropdowns();
+      const text = result.textContent;
+      if (!text) { showToast('沒有可下載的內容', true); return; }
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'formatted_sql_' + Math.floor(Date.now() / 1000) + '.' + ext;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+    document.getElementById('downloadSqlBtn').addEventListener('click', () => downloadResult('sql'));
+    document.getElementById('downloadTxtBtn').addEventListener('click', () => downloadResult('txt'));
 
     document.getElementById('copyClipboardBtn').addEventListener('click', () => {
       navigator.clipboard.writeText(result.textContent)
