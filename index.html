@@ -523,15 +523,28 @@
       return removeComments ? stripComments(sql) : xmlToSqlComments(sql);
     }
 
-    // 格式化核心：sql-formatter + 修回被拆開的運算子
+    // 遮罩 MyBatis 佔位符 #{...} / ${...} 成安全代號，避免 sql-formatter 解析錯誤
+    // （尤其 MySQL/MariaDB 的 # 是註解符號，直接送會把後半段吃成註解）
+    function maskParams(sql) {
+      const tokens = [];
+      const masked = sql.replace(/#\{[^}]*\}|\$\{[^}]*\}/g, m => {
+        tokens.push(m);
+        return 'MBP' + (tokens.length - 1) + 'MBP';
+      });
+      return { masked, tokens };
+    }
+
+    // 格式化核心：遮罩佔位符 → sql-formatter → 修回被拆開的運算子 → 還原佔位符
     function formatCore(sql) {
-      const formatted = sqlFormatter.format(sql, { language: dialectSelect.value, keywordCase: caseSelect.value, ...getIndentOptions() });
+      const { masked, tokens } = maskParams(sql);
+      const formatted = sqlFormatter.format(masked, { language: dialectSelect.value, keywordCase: caseSelect.value, ...getIndentOptions() });
       return formatted
         .replace(/!\s+=/g, '!=')
         .replace(/\|\s+\|/g, '||')
         .replace(/<\s+=/g, '<=')
         .replace(/>\s+=/g, '>=')
-        .replace(/<\s+>/g, '<>');
+        .replace(/<\s+>/g, '<>')
+        .replace(/MBP(\d+)MBP/g, (_, i) => tokens[+i]);
     }
 
     function formatSQL(removeComments = false) {
