@@ -220,6 +220,14 @@
     #resultBody .token.punctuation { color: #6a737d; }
     #resultBody .token.comment { color: #8a99a6; font-style: italic; }
     #resultBody .token.variable { color: #1f2d3a; }
+    /* MyBatis 佔位符 #{} / ${} 加底色，凸顯出來 */
+    #resultBody .token.mybatis-param {
+      background: #fff3bf !important;
+      color: #7a5b00;
+      border-radius: 3px;
+      padding: 1px 4px;
+      font-weight: 600;
+    }
 
     .toast {
       position: fixed;
@@ -401,6 +409,14 @@
     const resultContainer = document.getElementById('resultContainer');
     const resultLang = document.getElementById('resultLang');
     const toast = document.getElementById('toast');
+
+    // 讓 Prism 把 MyBatis 佔位符 #{} / ${} 認成獨立 token（排在 comment 前，
+    // 否則 # 會被當成註解），搭配 CSS 加底色凸顯
+    if (Prism.languages.sql) {
+      Prism.languages.insertBefore('sql', 'comment', {
+        'mybatis-param': { pattern: /[#$]\{[^}]*\}/ }
+      });
+    }
 
     // ── 下拉選單開關 ──
     function setupDropdown(toggleId, menuId) {
