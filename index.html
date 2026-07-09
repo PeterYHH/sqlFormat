@@ -443,7 +443,7 @@
     setupDropdown('downloadToggle', 'downloadMenu');
     setupDropdown('exportToggle', 'exportMenu');
 
-    // 結果區標題列顯示目前方言
+    // 結果區標題列顯示目前資料庫
     function updateLang() {
       resultLang.textContent = dialectSelect.options[dialectSelect.selectedIndex].text;
     }
@@ -574,8 +574,8 @@
       let hint;
       if (/Unexpected|Parse error/i.test(raw)) {
         hint = dialectSelect.value === 'sql'
-          ? '這段 SQL 在「Standard SQL」方言下無法解析（例如用到 & 位元運算等）。試著把上方方言切成 MySQL 或你資料庫對應的方言再試一次。'
-          : '這段 SQL 無法解析，可能是方言不符或語法有誤。可換個方言，或檢查是否有打錯的地方。';
+          ? '目前選的是「Standard SQL」，這段可能用到它不支援的語法（例如 & 位元運算）。試著把上方資料庫切成 MySQL 或你實際用的資料庫再試一次。'
+          : '這段 SQL 無法解析，可能是資料庫類型不符或語法有誤。可換個資料庫，或檢查是否有打錯的地方。';
       } else {
         hint = '格式化失敗，請確認 SQL 語法是否正確。';
       }
