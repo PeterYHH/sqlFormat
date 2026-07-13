@@ -121,6 +121,30 @@
       margin: 4px 0;
     }
 
+    /* ── 分割按鈕（主區塊一鍵執行預設動作，▾ 展開更多選項）── */
+    .split-btn { display: inline-flex; position: relative; align-items: stretch; }
+    .split-btn .split-main {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+    .split-btn .split-arrow {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      gap: 0;
+    }
+    /* 動作列（實心按鈕）：用半透明白線當分隔 */
+    .action-bar .split-btn .split-arrow {
+      padding-left: 10px;
+      padding-right: 10px;
+      box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.3);
+    }
+    /* 結果列（描邊小按鈕）：負邊距讓相鄰邊框收成一條線 */
+    .result-actions .split-btn .split-arrow {
+      padding-left: 7px;
+      padding-right: 7px;
+      margin-left: -1px;
+    }
+
     /* ── 結果區 ── */
     #resultContainer {
       background: #ffffff;
@@ -315,9 +339,12 @@
 
     <!-- 操作列：左側主操作 / 右側輔助 -->
     <div class="action-bar">
-      <div class="dropdown" id="formatDropdown">
-        <button class="dropdown-toggle" id="formatToggle">
-          Format SQL <span class="shortcut">⌘↵</span> <span class="dropdown-arrow">▾</span>
+      <div class="dropdown split-btn" id="formatDropdown">
+        <button class="split-main" id="formatToggle">
+          Format SQL <span class="shortcut">⌘↵</span>
+        </button>
+        <button class="split-arrow" id="formatArrow" aria-label="更多格式化選項">
+          <span class="dropdown-arrow">▾</span>
         </button>
         <div class="dropdown-menu" id="formatMenu">
           <button id="formatKeepBtn">保留註解</button>
@@ -325,9 +352,10 @@
         </div>
       </div>
 
-      <div class="dropdown" id="minifyDropdown">
-        <button class="btn-secondary dropdown-toggle" id="minifyToggle">
-          Minify <span class="dropdown-arrow">▾</span>
+      <div class="dropdown split-btn" id="minifyDropdown">
+        <button class="btn-secondary split-main" id="minifyToggle">Minify</button>
+        <button class="btn-secondary split-arrow" id="minifyArrow" aria-label="更多壓縮選項">
+          <span class="dropdown-arrow">▾</span>
         </button>
         <div class="dropdown-menu" id="minifyMenu">
           <button id="minifyKeepBtn">保留註解</button>
@@ -335,9 +363,10 @@
         </div>
       </div>
 
-      <div class="dropdown" id="cdataDropdown">
-        <button class="btn-secondary dropdown-toggle" id="cdataToggle">
-          MyBatis <span class="dropdown-arrow">▾</span>
+      <div class="dropdown split-btn" id="cdataDropdown">
+        <button class="btn-secondary split-main" id="cdataToggle">MyBatis</button>
+        <button class="btn-secondary split-arrow" id="cdataArrow" aria-label="更多 MyBatis 選項">
+          <span class="dropdown-arrow">▾</span>
         </button>
         <div class="dropdown-menu" id="cdataMenu">
           <button id="cdataKeepBtn">保留註解</button>
@@ -366,9 +395,10 @@
         <!-- 結果操作按鈕 -->
         <div class="result-actions">
           <button class="hdr-btn" id="copyClipboardBtn">複製文字</button>
-          <div class="dropdown" id="downloadDropdown">
-            <button class="hdr-btn dropdown-toggle" id="downloadToggle">
-              下載檔案 <span class="dropdown-arrow">▾</span>
+          <div class="dropdown split-btn" id="downloadDropdown">
+            <button class="hdr-btn split-main" id="downloadToggle">下載 .sql</button>
+            <button class="hdr-btn split-arrow" id="downloadArrow" aria-label="更多下載選項">
+              <span class="dropdown-arrow">▾</span>
             </button>
             <div class="dropdown-menu" id="downloadMenu">
               <button id="downloadSqlBtn">下載 .sql</button>
@@ -376,9 +406,10 @@
             </div>
           </div>
           <button class="hdr-btn" id="copyBtn">回填輸入</button>
-          <div class="dropdown dropdown-right" id="exportDropdown">
-            <button class="hdr-btn dropdown-toggle" id="exportToggle">
-              匯出圖片 <span class="dropdown-arrow">▾</span>
+          <div class="dropdown dropdown-right split-btn" id="exportDropdown">
+            <button class="hdr-btn split-main" id="exportToggle">下載 PNG</button>
+            <button class="hdr-btn split-arrow" id="exportArrow" aria-label="更多匯出選項">
+              <span class="dropdown-arrow">▾</span>
             </button>
             <div class="dropdown-menu" id="exportMenu">
               <button id="downloadImageBtn">下載 PNG</button>
@@ -437,11 +468,11 @@
       document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));
     }
     document.addEventListener('click', closeAllDropdowns);
-    setupDropdown('formatToggle', 'formatMenu');
-    setupDropdown('minifyToggle', 'minifyMenu');
-    setupDropdown('cdataToggle', 'cdataMenu');
-    setupDropdown('downloadToggle', 'downloadMenu');
-    setupDropdown('exportToggle', 'exportMenu');
+    setupDropdown('formatArrow', 'formatMenu');
+    setupDropdown('minifyArrow', 'minifyMenu');
+    setupDropdown('cdataArrow', 'cdataMenu');
+    setupDropdown('downloadArrow', 'downloadMenu');
+    setupDropdown('exportArrow', 'exportMenu');
 
     // 結果區標題列顯示目前資料庫
     function updateLang() {
@@ -685,6 +716,11 @@
     indentSelect.addEventListener('change', () => { saveToStorage(); formatSQL(); });
     caseSelect.addEventListener('change', () => { saveToStorage(); formatSQL(); });
 
+    // 分割按鈕主區塊：一鍵執行最常用的預設動作（皆為「保留註解」）
+    document.getElementById('formatToggle').addEventListener('click', () => formatSQL(false));
+    document.getElementById('minifyToggle').addEventListener('click', () => minifySQL(false));
+    document.getElementById('cdataToggle').addEventListener('click', () => toMyBatis(false));
+
     document.getElementById('formatKeepBtn').addEventListener('click', () => {
       closeAllDropdowns();
       formatSQL(false);
@@ -789,6 +825,8 @@
       link.click();
       URL.revokeObjectURL(link.href);
     }
+    // 分割按鈕主區塊：下載預設 .sql
+    document.getElementById('downloadToggle').addEventListener('click', () => downloadResult('sql'));
     document.getElementById('downloadSqlBtn').addEventListener('click', () => downloadResult('sql'));
     document.getElementById('downloadTxtBtn').addEventListener('click', () => downloadResult('txt'));
 
@@ -798,7 +836,7 @@
         .catch(err => showToast('複製失敗：' + err, true));
     });
 
-    document.getElementById('downloadImageBtn').addEventListener('click', () => {
+    function exportPNG() {
       closeAllDropdowns();
       html2canvas(resultContainer).then(canvas => {
         const link = document.createElement('a');
@@ -806,7 +844,10 @@
         link.download = 'formatted_sql_' + Math.floor(Date.now() / 1000) + '.png';
         link.click();
       });
-    });
+    }
+    // 分割按鈕主區塊：匯出預設下載 PNG
+    document.getElementById('exportToggle').addEventListener('click', exportPNG);
+    document.getElementById('downloadImageBtn').addEventListener('click', exportPNG);
 
     document.getElementById('copyImageClipboardBtn').addEventListener('click', () => {
       closeAllDropdowns();
